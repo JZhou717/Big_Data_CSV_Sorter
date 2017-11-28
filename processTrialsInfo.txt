@@ -1,0 +1,160 @@
+Testing different speed of sorting using processes on various amount of files. There are 4 other files in the directory, but none of those are CSV so it should have a negligible impact on time. The csv files that are being sorted each have 300 lines of data in them, plus one line dedicated to the categories, so 301 lines in total. 
+
+Executed by using the linux command:
+
+(time ./sorter -c -d /ilab/users/jjr263/FALL17/CS214/project2analysis -o /ilab/users/jjr263/FALL17/CS214/project2analysis) 2>> processTrialsInfo.txt
+
+1 File: 
+
+real	0m0.022s
+user	0m0.003s
+sys	0m0.016s
+
+real	0m0.034s
+user	0m0.006s
+sys	0m0.010s
+
+real	0m0.074s
+user	0m0.025s
+sys	0m0.030s
+
+2 Files:
+
+real	0m0.082s
+user	0m0.041s
+sys	0m0.054s
+
+real	0m0.044s
+user	0m0.017s
+sys	0m0.029s
+
+real	0m0.048s
+user	0m0.024s
+sys	0m0.043s
+
+4 Files:
+
+real	0m0.053s
+user	0m0.028s
+sys	0m0.081s
+
+real	0m0.065s
+user	0m0.063s
+sys	0m0.122s
+
+real	0m0.037s
+user	0m0.028s
+sys	0m0.077s
+
+8 Files:
+
+real	0m0.128s
+user	0m0.121s
+sys	0m0.476s
+
+real	0m0.122s
+user	0m0.112s
+sys	0m0.443s
+
+real	0m0.097s
+user	0m0.075s
+sys	0m0.418s
+
+16 Files:
+
+real	0m0.282s
+user	0m0.188s
+sys	0m1.483s
+
+real	0m0.313s
+user	0m0.212s
+sys	0m1.709s
+
+real	0m0.313s
+user	0m0.193s
+sys	0m1.640s
+
+32 Files:
+
+real	0m2.665s
+user	0m1.750s
+sys	0m14.600s
+
+real	0m1.703s
+user	0m0.886s
+sys	0m10.176s
+
+real	0m2.415s
+user	0m1.653s
+sys	0m12.714s
+
+64 Files:
+
+real	0m6.925s
+user	0m3.420s
+sys	0m39.400s
+
+real	0m7.127s
+user	0m5.722s
+sys	0m38.216s
+
+real	0m6.405s
+user	0m2.924s
+sys	0m37.757s
+
+128 Files:
+
+real	0m11.896s
+user	0m6.713s
+sys	1m7.987s
+
+real	0m8.548s
+user	0m5.573s
+sys	0m46.448s
+
+real	0m20.334s
+user	0m4.825s
+sys	2m5.617s
+
+256 Files:
+
+real	0m24.945s
+user	0m9.370s
+sys	2m32.926s
+
+real	0m17.466s
+user	0m8.810s
+sys	1m32.797s
+
+real	0m17.607s
+user	0m10.796s
+sys	1m37.114s
+
+512 Files:
+
+real	0m53.220s
+user	0m24.398s
+sys	3m0.612s
+
+real	0m29.532s
+user	0m18.166s
+sys	2m15.898s
+
+real	0m25.940s
+user	0m17.280s
+sys	1m48.561s
+
+1024 Files:
+
+real	0m45.198s
+user	0m23.968s
+sys	3m26.371s
+
+real	0m41.533s
+user	0m27.056s
+sys	3m12.852s
+
+real	0m34.495s
+user	0m20.508s
+sys	2m41.253s
+
