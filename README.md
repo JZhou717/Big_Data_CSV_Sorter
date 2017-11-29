@@ -12,3 +12,5 @@ We then moved on to phasing out all the references to forking and related proces
 We had to alter the code and the Makefile to include thread libraries so that we can actually implement thread creation. We also wrote code for new structs that contain fields for the arguments used in the functions we call new threads on. We placed these in the header file.
 
 We ran into some difficulties such as figuring out how to wait for threads to complete before returning from the main process, and how to ensure that we were actually multithreading as opposed to just waiting for each thread to finish before moving on in our program.
+
+Once we fixed those relatively minor issues, the biggest problem we ran into was actually waiting for the threads to complete what they were doing before joining them. This is crucial since all the of the data processing actually only occurs in our threads, since we are joining them before they can achieve anything, we could not actually compute any data. We spent significant time trying to resolve this issue.
