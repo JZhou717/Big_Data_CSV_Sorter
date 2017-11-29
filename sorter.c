@@ -938,7 +938,7 @@ int main(int argc, char ** argv) {
 	//printf("\nargc = %d\n", argc);
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
-	printf("TIDS of all child threads: ");
+	printf("\tTIDS of all child threads: ");
 
 	//int forkPid;
 	//printf("\nDid we pass this check?\n");
@@ -1589,6 +1589,6 @@ int main(int argc, char ** argv) {
 		threadIdsHead = threadIdsHead->next;
 	}while(threadIdsHead != NULL);
 	
-	printf("\nTotal number of threads: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
+	printf("\n\tTotal number of threads: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
 	return 0;
 }
