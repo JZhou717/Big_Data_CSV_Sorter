@@ -1632,7 +1632,7 @@ int main(int argc, char ** argv) {
 		threadIdsHead = threadIdsHead->next;
 	}while(threadIdsHead != NULL);
 	
-	printf("\n\tTotal number of threads: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
+	printf("\n\tTotal number of threads: %d\n", *(totalThreads));
 	
 	movie* currPtr = (movie*)malloc(sizeof(movie));
 	currPtr = globalHead;
