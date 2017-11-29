@@ -61,24 +61,22 @@
 	//Struct containing arguments for sortFile
 	typedef struct sortFileArg {
 		char* fileName;
-		//char** argv;
+		char** argv;
 		int sortingBy;
 		char* path;
-		//int colLoc;
-		movie* globalHead;
-		movie* globalRear;
+		int colLoc;
+		int * runningThreadCount;
 	}sortFileArgs;
 	
 	typedef struct traverseArg {
 		char* path;
-		//char** argv;
+		char** argv;
 		int sortingBy;
 		int existsNewOutDir;
 		char* outPath;
 		int * totalThreads;
 		int colLoc;
-		movie* globalHead;
-		movie* globalRear;
+		int * runningThreadCount;
 	}traverseDirectoryArgs;
 	
 	//sorter.c helper method prototypes

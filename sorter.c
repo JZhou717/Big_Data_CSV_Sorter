@@ -11,13 +11,15 @@
 #include <pthread.h>
 
 
-//volatile int runningThreadCount = 0;
+
 pthread_mutex_t thread_ID_list = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t file_open_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t file_open_lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t running_thread_count = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t total_thread_count = PTHREAD_MUTEX_INITIALIZER;
 
 threadIds * threadIdsHead = NULL;
 threadIds* threadIdsRear = NULL;
-
 
 movie* freePtr(movie* node){
 	if(node == NULL){
@@ -209,22 +211,22 @@ int sortByCategory(char* sortColumnName){
 	}
 	else {
 		printf("Fatal Error: Please input a proper category title\n");
-		pthread_exit(0);
+		exit(0);
 	}
 }
 
 void * sortFile(void * args){
+	printf("YAY I ENTERED SORTFILE()\n");
 	char * fileName = NULL;
 	fileName = strdup(((sortFileArgs *)args)->fileName);
-	//char** argv = ((sortFileArgs *)args)->argv;
+	char** argv = ((sortFileArgs *)args)->argv;
 	int sortingBy = ((sortFileArgs *)args)->sortingBy;
 	char * path = NULL;
 	path = strdup(((sortFileArgs *)args)->path);
-	//int colLoc = ((sortFileArgs *)args)->colLoc;
-	movie* globalHead = ((sortFileArgs *)args)->globalHead;
-	movie* globalRear = ((sortFileArgs *)args)->globalRear;
+	int colLoc = ((sortFileArgs *)args)->colLoc;
+	int* runningThreadCount = ((sortFileArgs *)args)->runningThreadCount;
 
-	printf("%u,", (unsigned int) pthread_self());
+	//printf("%u,", (unsigned int) pthread_self());
 	
 	//printf("current path = %s\n", path);
 	
@@ -235,7 +237,7 @@ void * sortFile(void * args){
 	
 	//printf("current fileName = %s\n", fileName);
 	
-	pthread_mutex_lock(&file_open_lock);
+	//pthread_mutex_lock(&file_open_lock);
 	char* filePath = (char*)malloc(sizeof(char) * strlen(path) + 30);
 	memcpy(filePath, path, strlen(path));
 	strcat(filePath, "/");
@@ -262,16 +264,12 @@ void * sortFile(void * args){
 		pthread_exit(0);
 	}
 	//Create new file name to output to.
-	//char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
-	/*char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen("AllFiles") + 30)));
+	char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
 	//Determine where endOfFileName is, subtract 4 (accounts for ".csv"). Then, concatenate "-sorted-<category>.csv".
-	//int endOfFileName = strlen(fileName) - 4;
-	int endOfFileName = strlen("AllFiles") - 4;
+	int endOfFileName = strlen(fileName) - 4;
 	
-	//char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
-	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen("AllFiles") + 1)));
-	//truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
-	truncatedFileName = memcpy(truncatedFileName, "AllFiles", endOfFileName);
+	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
+	truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
 	
 	truncatedFileName[endOfFileName + 1] = '\0';
 	
@@ -282,10 +280,13 @@ void * sortFile(void * args){
 	strcat(newFileName, truncatedFileName);
 	strcat(newFileName, "-sorted-");
 	strcat(newFileName, argv[colLoc]);
-	strcat(newFileName, ".csv");*/
+	strcat(newFileName, ".csv");
 	//printf("NEW FILE NAME: %s\n", newFileName);
 	
 	//printf("Printing out into the file: %s\n", newFileName);
+	
+	
+	
 
 
 	int i;
@@ -295,19 +296,18 @@ void * sortFile(void * args){
 	
 	
 	//printf("\nnewFileName = %s\n", newFileName);
-	//FILE* outputFile = fopen(newFileName, "r");
+	FILE* outputFile = fopen(newFileName, "r");
 	
 	
 	//If outputFile already exists, don't even bother with rest of method.
-	/*if(outputFile != NULL){
+	if(outputFile != NULL){
 		//printf("Fatal Error: File \"%s\" already exists.\n", newFileName);
 		pthread_exit(0);
 	}
-	else{*/
+	else{
 		//printf("OUTPUTFILE OPENED\n\n");
-	//FILE* outputFile = fopen(newFileName, "w");
-	//}
-	//outputFile = fopen(newFileName, "w");
+		outputFile = fopen(newFileName, "w");
+	}
 	
 	if(line == NULL){
 		printf("Fatal Error: The input file is blank.\n");
@@ -441,34 +441,21 @@ void * sortFile(void * args){
 		templine = realloc(templine, 500);
 		hasQuotes = 0;
 	}
-	
+	//pthread_mutex_unlock(&file_open_lock);
 	//Given the head pointer to the start of the Linked List structure and a category to sort by, perform a merge sort.
 	merge(&headMovies, sortingBy);
 
-	/*movie* currPtr = (movie*)malloc(sizeof(movie));
+	movie* currPtr = (movie*)malloc(sizeof(movie));
 	currPtr = headMovies;
 	
-	printNodes(currPtr, outputFile);*/
-	
-	//If this is the first file we are working with and there is no data in the global linked list yet, make this the global linked list
-	if(globalHead == NULL) {
-		globalHead = headMovies;
-		globalRear = rearMovies;
-	}
-	else { //otherwise, append this list to the global linked list
-		globalRear->next = headMovies;
-	}
-	
-	//To keep everything sorted, mergesort again on the new appended list
-	merge(&globalHead, sortingBy);
-	
-	pthread_mutex_unlock(&file_open_lock);
+	//printf("\n\nTIME TO PRINT\n\n");
+	printNodes(currPtr, outputFile);
+
 	//This section of code will free the allocated memory for each pointer, struct, etc
 	//free(categories);
 	//free(truncatedFileName);
 	//free(newFileName);
-	//freePtr(headMovies);
-	free(headMovies);
+	freePtr(headMovies);
 	free(rearMovies);
 	//free(currPtr);
 	//free(line);
@@ -479,6 +466,13 @@ void * sortFile(void * args){
 	
 	//return childCount;
 	
+	pthread_mutex_lock(&running_thread_count);
+	(*runningThreadCount)--;
+	pthread_mutex_unlock(&running_thread_count);
+	
+	printf("YAY IM EXITING FROM SORTFILE\n");
+	
+	pthread_exit(0);
 	return NULL;
 }
 
@@ -488,17 +482,16 @@ void * traverseDirectory(void * args){
 	
 	char * path = NULL;
 	path = strdup(((traverseDirectoryArgs*)args)->path);
-	//char** argv = ((traverseDirectoryArgs*)args)->argv;
+	char** argv = ((traverseDirectoryArgs*)args)->argv;
 	int sortingBy = ((traverseDirectoryArgs*)args)->sortingBy;
 	int existsNewOutDir = ((traverseDirectoryArgs*)args)->existsNewOutDir;
 	char * outPath = NULL;;
 	outPath = strdup(((traverseDirectoryArgs*)args)->outPath);
 	int* totalThreads = ((traverseDirectoryArgs*)args)->totalThreads;
+	int* runningThreadCount = ((traverseDirectoryArgs*)args)->runningThreadCount;
 	int colLoc = ((traverseDirectoryArgs*)args)->colLoc;
-	movie* globalHead = ((traverseDirectoryArgs*)args)->globalHead;
-	movie* globalRear = ((traverseDirectoryArgs*)args)->globalRear;
 	
-	printf("%u,", (unsigned int) pthread_self());
+	//printf("%u,", (unsigned int) pthread_self());
 	
 	pthread_mutex_lock(&thread_ID_list);
 	if(threadIdsHead == NULL){
@@ -581,9 +574,14 @@ void * traverseDirectory(void * args){
 				
 				//Repeat process with new directory
 				//printf("\nduplicate child prob gets here\n");
+				
+				pthread_mutex_lock(&total_thread_count);
 				(*totalThreads)++;
+				pthread_mutex_unlock(&total_thread_count);
 				
-				
+				pthread_mutex_lock(&running_thread_count);
+				(*runningThreadCount)++;
+				pthread_mutex_unlock(&running_thread_count);
 				
 				
 				//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
@@ -595,9 +593,8 @@ void * traverseDirectory(void * args){
 				((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 				((traverseDirectoryArgs*)args)->outPath = strdup(outPath);
 				((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+				((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 				((traverseDirectoryArgs*)args)->colLoc = colLoc;
-				((traverseDirectoryArgs*)args)->globalHead = globalHead;
-				((traverseDirectoryArgs*)args)->globalRear = globalRear;
 				
 				void * (*traverseFuncPointer)(void*) = traverseDirectory;
 				
@@ -656,18 +653,25 @@ void * traverseDirectory(void * args){
 				}*/
 				
 				
+				pthread_mutex_lock(&total_thread_count);
 				(*totalThreads)++;
+				pthread_mutex_unlock(&total_thread_count);
+				
+				pthread_mutex_lock(&running_thread_count);
+				(*runningThreadCount)++;
+				pthread_mutex_unlock(&running_thread_count);
+				
 				pthread_t tid;
 				
 				sortFileArgs * sortArgs = malloc(sizeof(sortFileArgs));
 				
 				//printf("currentObject->d_name = %s\n", currentObject->d_name);
 				((sortFileArgs*)sortArgs)->fileName = strdup(currentObject->d_name);
-				//((sortFileArgs*)sortArgs)->argv = argv;
+				((sortFileArgs*)sortArgs)->argv = argv;
 				((sortFileArgs*)sortArgs)->sortingBy = sortingBy;
-				//((sortFileArgs*)sortArgs)->colLoc = colLoc;
-				((sortFileArgs*)args)->globalHead = globalHead;
-				((sortFileArgs*)args)->globalRear = globalRear;
+				((sortFileArgs*)sortArgs)->colLoc = colLoc;
+				((sortFileArgs*)sortArgs)->runningThreadCount = runningThreadCount;
+				
 				
 				if(existsNewOutDir == 1){
 					//sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
@@ -727,6 +731,14 @@ void * traverseDirectory(void * args){
 	
 	//printf("Number of total processes: %d\n", *processCount);
 	//return *totalThreads;
+	
+	pthread_mutex_lock(&running_thread_count);
+	(*runningThreadCount)--;
+	pthread_mutex_unlock(&running_thread_count);
+	
+	printf("YAY IM EXITING FROM TRAVERSE DIRECT\n");
+	
+	pthread_exit(0);
 	return NULL;
 }
 
@@ -944,28 +956,23 @@ void printNodes(movie * currPtr, FILE* outputFile)
 					break;
 				default: 
 					printf("Fatal Error: The category you would like to sort by is not present.\n");
-					pthread_exit(0);
+					exit(0);
 			}
 		}
 			currPtr = currPtr->next;
 	}	
+	
+	
 	//fclose(outputFile);
+	
 }
 
 //The main function is our driver that will call various functions as necessary. Such functions perform the tasks of creating new Linked List nodes, trimming spaces of strings, determining the category we are sorting by, and printing out the sorted Linked List.
 int main(int argc, char ** argv) {
-	
-	//Pointer to the global sorted linked list that we are keeping all of our movies in
-	movie * globalHead = (movie *)malloc(sizeof(movie));
-	movie * globalRear = (movie *)malloc(sizeof(movie));
-	
-	globalHead = NULL;
-	globalRear = NULL;
-	
-	FILE* outputFile;
-	
 	int * totalThreads = (int *)malloc(sizeof(int));
 	*totalThreads = 0;
+	int * runningThreadCount = (int *)malloc(sizeof(int));
+	*runningThreadCount = 0;
 	int existsNewOutDir = 0;
 	int err;
 	traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
@@ -973,7 +980,6 @@ int main(int argc, char ** argv) {
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
 	printf("\tTIDS of all child threads: ");
-
 
 	//int forkPid;
 	//printf("\nDid we pass this check?\n");
@@ -1217,17 +1223,23 @@ int main(int argc, char ** argv) {
 							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
 						}*/
 						
+						pthread_mutex_lock(&total_thread_count);
 						(*totalThreads)++;
+						pthread_mutex_unlock(&total_thread_count);
+						
+						pthread_mutex_lock(&running_thread_count);
+						(*runningThreadCount)++;
+						pthread_mutex_unlock(&running_thread_count);
+						
 						traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*)args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->argv = argv;
 						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*)args)->outPath = strdup(outPath);
 						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*)args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						
@@ -1340,17 +1352,23 @@ int main(int argc, char ** argv) {
 					
 							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
 						}*/
+						pthread_mutex_lock(&total_thread_count);
 						(*totalThreads)++;
+						pthread_mutex_unlock(&total_thread_count);
+						
+						pthread_mutex_lock(&running_thread_count);
+						(*runningThreadCount)++;
+						pthread_mutex_unlock(&running_thread_count);
+						
 						//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*) args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*) args)->argv = argv;
+						((traverseDirectoryArgs*) args)->argv = argv;
 						((traverseDirectoryArgs*) args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*) args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*) args)->outPath = getcwd(((traverseDirectoryArgs*) args)->outPath, 1024);
 						((traverseDirectoryArgs*) args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*) args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*) args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1460,17 +1478,23 @@ int main(int argc, char ** argv) {
 					
 							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
 						}*/
+						pthread_mutex_lock(&total_thread_count);
 						(*totalThreads)++;
+						pthread_mutex_unlock(&total_thread_count);
+						
+						pthread_mutex_lock(&running_thread_count);
+						(*runningThreadCount)++;
+						pthread_mutex_unlock(&running_thread_count);
+						
 						traverseDirectoryArgs * args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*)args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->argv = argv;
 						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*)args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1556,18 +1580,22 @@ int main(int argc, char ** argv) {
 			//printf("outPath in main = %s\n", outPath);
 			traverseDirectory(cwd, argv, sortingBy, existsNewOutDir, outPath, totalThreads, colLoc);
 		}*/
+		pthread_mutex_lock(&total_thread_count);
 		(*totalThreads)++;
+		pthread_mutex_unlock(&total_thread_count);
 		
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)++;
+		pthread_mutex_unlock(&running_thread_count);
 		
 		((traverseDirectoryArgs*)args)->path = strdup(cwd);
-		//((traverseDirectoryArgs*)args)->argv = argv;
+		((traverseDirectoryArgs*)args)->argv = argv;
 		((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 		((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 		((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 		((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+		((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 		((traverseDirectoryArgs*)args)->colLoc = colLoc;
-		((traverseDirectoryArgs*)args)->globalHead = globalHead;
-		((traverseDirectoryArgs*)args)->globalRear = globalRear;
 		
 		pthread_t tid;
 		void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1624,72 +1652,20 @@ int main(int argc, char ** argv) {
 	//NOTE: fflush(0) is necessary before forking in order to clear the I/O buffer to repeat incredibly repetitive output.
 	//printf("END OF MAIN THREADIDSHEAD TID = %u\n", (unsigned int) threadIdsHead->tid);
 	
-	
-	sleep(1);
+	while((*runningThreadCount) > 0){
+		printf("runningThreadCount = %d\n", *runningThreadCount);
+		sleep(1);
+	}
 	//printf("threadIdsHead->tid = %u\n", (unsigned int) threadIdsHead->tid);
-	do{
+	
+	/*do{
+		printf("%u,", (unsigned int) threadIdsHead->tid);
 		pthread_join(threadIdsHead->tid, NULL);
 		threadIdsHead = threadIdsHead->next;
 	}while(threadIdsHead != NULL);
 	
-	printf("\n\tTotal number of threads: %d\n", *(totalThreads));
+	*/
 	
-	movie* currPtr = (movie*)malloc(sizeof(movie));
-	currPtr = globalHead;
-	
-	char* path;
-	
-	if(existsNewOutDir == 1){
-		//sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
-		path = strdup(outPath);
-	}
-	else{
-		//sortFile(currentObject->d_name, argv, sortingBy, ".", colLoc);
-		//path = getcwd(((sortFileArgs*)sortArgs)->path, 1024);
-		path = ".";
-	}
-	
-	
-	//Create new file name to output to.
-	//char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
-	char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen("AllFiles") + 30)));
-	//Determine where endOfFileName is, subtract 4 (accounts for ".csv"). Then, concatenate "-sorted-<category>.csv".
-	//int endOfFileName = strlen(fileName) - 4;
-	int endOfFileName = strlen("AllFiles") - 4;
-	
-	//char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
-	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen("AllFiles") + 1)));
-	//truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
-	truncatedFileName = memcpy(truncatedFileName, "AllFiles", endOfFileName);
-	
-	truncatedFileName[endOfFileName + 1] = '\0';
-
-	
-	//printf("truncated FN = %s\n", truncatedFileName);
-	int endOfOutPath = strlen(path);
-	memcpy(newFileName, path, endOfOutPath);
-	strcat(newFileName, "/");
-	strcat(newFileName, truncatedFileName);
-	strcat(newFileName, "-sorted-");
-	strcat(newFileName, argv[colLoc]);
-	strcat(newFileName, ".csv");
-	
-	outputFile = fopen(newFileName, "w");
-	
-	if(outputFile == NULL) {
-		printf("Fatal Error: could not create output file\n");
-		exit(0);
-	}
-	else {
-		if(currPtr == NULL) {
-			printf("Fatal Error: no valid CSVs in target directory\n");
-			exit(0);
-		}
-		printNodes(currPtr, outputFile);
-	}
-	
-	freePtr(globalHead);
-	//free(globalHead);
-	free(globalRear);
+	printf("\n\tTotal number of threads: %d\n", *totalThreads);
 	return 0;
 }
