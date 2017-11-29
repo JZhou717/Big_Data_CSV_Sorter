@@ -51,13 +51,32 @@
 		struct movies * next;
 	}movie; /* Movie nodes with all the information needed */
 	
+	//Struct containing arguments for sortFile
+	typedef struct sortFileArg {
+		char* fileName;
+		char** argv;
+		int sortingBy;
+		char* path;
+		int colLoc;
+	}sortFileArgs;
+	
+	typedef struct traverseArg {
+		char* path;
+		char** argv;
+		int sortingBy;
+		int existsNewOutDir;
+		char* outPath;
+		int * totalThreads;
+		int colLoc;
+	}traverseDirectoryArgs;
+	
 	//sorter.c helper method prototypes
 	movie* freePtr(movie* node);
 	movie* createNode(char** catToked, int hasQuotes);
 	char* spaceTrim(char* string);
 	int sortByCategory(char* sortColumnName);
-	void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc);
-	int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int existsNewOutDir, char* outPath, int * totalThreads, int colLoc);
+	void sortFile(void * args);
+	void traverseDirectory(void * args);
 	void printNodes(movie * currPtr, FILE* outputFile);
 
 	//Prototypes for the functions we're using in mergesort.c - DOCUMENTATION IS IN THAT FILE

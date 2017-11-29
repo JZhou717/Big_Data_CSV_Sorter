@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 movie* freePtr(movie* node){
 	if(node == NULL){
@@ -199,11 +200,22 @@ int sortByCategory(char* sortColumnName){
 	}
 	else {
 		printf("Fatal Error: Please input a proper category title\n");
-		exit(0);
+		pthread_exit(0);
 	}
 }
 
-void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc){
+void sortFile(void * args){
+	char * fileName;
+	strcpy(fileName, ((sortFileArgs *)args)->fileName);
+	char** argv = ((sortFileArgs *)args)->argv;
+	int sortingBy = ((sortFileArgs *)args)->sortingBy;
+	char * path;
+	strcpy(path, ((sortFileArgs *)args)->path);
+	int colLoc = ((sortFileArgs *)args)->colLoc;
+
+	printf("%d,", (int) pthread_getthreadid_np());
+	
+	
 	//printf("outPath in sortFile = %s\n", path);
 	movie * headMovies = NULL;
 	
@@ -213,7 +225,7 @@ void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc
 
 	if(filePointer == NULL){
 		printf("Fatal Error: The file does not exist.\n");
-		exit(0);
+		pthread_exit(0);
 	}
 	char* categories = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
 	char* line = (char*)malloc(sizeof(char)*500);
@@ -227,7 +239,7 @@ void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc
 	if(strcmp(line, categories) !=  0){
 		printf("Fatal Error: The input file \"%s\" does not adhere to specified format\n", fileName);
 		//fclose(filePointer);
-		exit(0);
+		pthread_exit(0);
 	}
 	//Create new file name to output to.
 	char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
@@ -268,7 +280,7 @@ void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc
 	//If outputFile already exists, don't even bother with rest of method.
 	if(outputFile != NULL){
 		//printf("Fatal Error: File \"%s\" already exists.\n", newFileName);
-		exit(0);
+		pthread_exit(0);
 	}
 	else{
 		//printf("OUTPUTFILE OPENED\n\n");
@@ -277,7 +289,7 @@ void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc
 	
 	if(line == NULL){
 		printf("Fatal Error: The input file is blank.\n");
-		exit(0);
+		pthread_exit(0);
 	}
 
 	//Points to the last node in the linked list to add to the list faster.
@@ -430,25 +442,39 @@ void sortFile(char* fileName, char** argv, int sortingBy, char* path, int colLoc
 	//fclose(filePointer);
 	
 	//return childCount;
-
 }
 
 //This function will recursively traverse through the original given file path. If a directory is found within the original directory, the process will fork and recursively call the traverseDirectory() function. If a file is found, the function will determine whether or not it is a CSV, and then fork if it is.
-int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int existsNewOutDir, char* outPath, int * totalThreads, int colLoc){
+void traverseDirectory(void * args){
+	char * path;
+	strcpy(path, ((traverseDirectoryArgs*)args)->path);
+	char** argv = ((traverseDirectoryArgs*)args)->argv;
+	int sortingBy = ((traverseDirectoryArgs*)args)->sortingBy;
+	int existsNewOutDir = ((traverseDirectoryArgs*)args)->existsNewOutDir;
+	char * outPath;
+	strcpy(outPath, ((traverseDirectoryArgs*)args)->outPath);
+	int* totalThreads = ((traverseDirectoryArgs*)args)->totalThreads;
+	int colLoc = ((traverseDirectoryArgs*)args)->colLoc;
+	
+	printf("%d,", (int) pthread_getthreadid_np());
+	
 	//printf("outPath in traverseDir = %s\n", outPath);
 	//flag to see if we printed or not, defaul 0, will be set to current pid after pid printed, must be passed because same process can recursively call traverseDirectory()
-	int printedpid = printed;
-	
-	int pid = -1;
+	pthread_t tid;
+	int err;
+	//int pid = -1;
 	DIR* directoryPointer;
 	struct dirent* currentObject;
 	struct stat buffer;
+	
+	//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs);
 	
 	//printf("path to file = %s\n", path);
 	
 	if((directoryPointer = opendir(path)) == NULL){
 		printf("Fatal Error: The directory does not exist.\n");
-		exit(0);
+		//return;
+		pthread_exit(0);
 	}
 	
 	//This will change the current working directory (cwd) to the given location, which will be the path we send the function.
@@ -467,32 +493,21 @@ int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int e
 		//If the current object being read is a directory...
 		if(S_ISDIR(buffer.st_mode)){
 			//Fork a new process
-			if(printedpid != getpid()) {
-				if(pid == -1){
-					printf("%d,", getpid());
-					printedpid = getpid();
-				}
-			}
 			fflush(0);
-			pid = fork();
+			/*pid = fork();
 			if(pid != 0) {
 				(*totalThreads)++;
 				//printf("\nTraverse: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 			}
-			if(pid == 0) {
+			if(pid == 0) {*/
 				//printf("TEST TEST TEST TEST: %d\n", getpid());
 				//totalProcesses = 0;
 				//printf("\nTraverse: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 			
-				//Print out PID of child process
-				if(printedpid != getpid()) {
-					printf("%d,", getpid());
-					printedpid = getpid();
-				}
 				
 				//These are edge names that mess up the traversal (".." make the pointer go up a level)
 				if((strcmp(currentObject->d_name, "..") == 0) || (strcmp(currentObject->d_name, ".") == 0)){
-					exit(0);
+					continue;
 				}
 				
 				//We create a char array located in the stack that will hold the path to the new directory we must traverse.
@@ -506,9 +521,31 @@ int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int e
 				
 				//Repeat process with new directory
 				//printf("\nduplicate child prob gets here\n");
-				traverseDirectory(newPath, argv, sortingBy, printedpid, existsNewOutDir, outPath, totalThreads, colLoc);
+				(*totalThreads)++;
+				
+				
+				//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
+				
+				//What is i for this thread
+				strcpy(((traverseDirectoryArgs*)args)->path, newPath);
+				//args->argv = argv;
+				//args->sortingBy = sortingBy;
+				((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
+				strcpy(((traverseDirectoryArgs*)args)->outPath, outPath);
+				((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+				((traverseDirectoryArgs*)args)->colLoc = colLoc;
+				
+				void (*traverseFuncPointer)(void*) = traverseDirectory;
+				
+				err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+				if(err != 0) {
+					printf("Fatal error: Thread did not create properly\n");
+					//Should it be exit or return?
+					pthread_exit(0);
+				}
+				//traverseDirectory(newPath, argv, sortingBy, existsNewOutDir, outPath, totalThreads, colLoc);
 				printf("\nbut does it get here\n");
-			}
+			
 			
 			
 		}
@@ -525,34 +562,43 @@ int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int e
 			//The only remaining option is for the file to be considered for sorting. Thus, fork a new process.
 			else{
 				//ONLY PRINTS CORRECTLY IF \n IS PRESENT IN BOTH
-				if(printedpid != getpid()) {
-					if(pid == -1){
-						printf("%d,", getpid());
-						printedpid = getpid();
-					}
-				}
 				fflush(0);
-				pid = fork();
+				/*pid = fork();
 				if(pid != 0) {
 					(*totalThreads)++;
 					//printf("\ntraverse-else: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
+				}*/
 				/*if(pid == 0) {
 					totalProcesses = 0;
 					//printf("\ntraverse-else: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 				}*/
 				
-				if(pid == 0){
-					if(printedpid != getpid()) {
-						printf("%d,", getpid());
-						printedpid = getpid();
-					}
-					if(existsNewOutDir == 1){
-						sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
-					}
-					else{
-						sortFile(currentObject->d_name, argv, sortingBy, ".", colLoc);
-					}
+				
+				(*totalThreads)++;
+				pthread_t tid;
+				
+				sortFileArgs * sortArgs = malloc(sizeof(sortFileArgs));
+				
+				strcpy(((sortFileArgs*)sortArgs)->fileName, currentObject->d_name);
+				((sortFileArgs*)sortArgs)->argv = argv;
+				((sortFileArgs*)sortArgs)->sortingBy = sortingBy;
+				((sortFileArgs*)sortArgs)->colLoc = colLoc;
+				
+				if(existsNewOutDir == 1){
+					//sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
+					strcpy(((sortFileArgs*)sortArgs)->path, outPath);
+				}
+				else{
+					//sortFile(currentObject->d_name, argv, sortingBy, ".", colLoc);
+					strcpy(((sortFileArgs*)sortArgs)->path, ".");
+				}
+				
+				void (*sortFuncPointer)(void*) = sortFile;
+				
+				err = pthread_create(&tid, NULL, sortFuncPointer, (void*)sortArgs);
+				if(err != 0) {
+					printf("Fatal Error: Something went wrong with thread creation.\n");
+					pthread_exit(0);
 				}
 			}
 		}
@@ -575,7 +621,7 @@ int traverseDirectory(char* path, char** argv, int sortingBy, int printed, int e
 		}
 	}*/
 	//not sure if we need this addtional wait but just to be safe of any leftover children, let's do it anyways
-	wait(NULL);
+	//wait(NULL);
 	
 	//printf("Number of total processes: %d\n", *processCount);
 	return *totalThreads;
@@ -796,7 +842,7 @@ void printNodes(movie * currPtr, FILE* outputFile)
 					break;
 				default: 
 					printf("Fatal Error: The category you would like to sort by is not present.\n");
-					exit(0);
+					pthread_exit(0);
 			}
 		}
 			currPtr = currPtr->next;
@@ -809,12 +855,14 @@ int main(int argc, char ** argv) {
 	int * totalThreads = (int *)malloc(sizeof(int));
 	*totalThreads = 1;
 	int existsNewOutDir = 0;
+	int err;
+	traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
 	//printf("\nargc = %d\n", argc);
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
 	printf("TIDS of all child threads: ");
 
-	int forkPid;
+	//int forkPid;
 	//printf("\nDid we pass this check?\n");
 	
 	/* Start of previous input flags code
@@ -1040,18 +1088,40 @@ int main(int argc, char ** argv) {
 							exit(0);
 						}
 						fflush(0);
-						forkPid = fork();
+						
+						
+						/*forkPid = fork();
 						if(forkPid != 0) {
 							(*totalThreads)++;
 							//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-						}
+						}*/
 						/*if(forkPid == 0) {
 							totalProcesses = 0;
 							//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 						}*/
-						if(forkPid == 0){
+						/*if(forkPid == 0){
 					
-							traverseDirectory(argv[i+1], argv, sortingBy, 0, existsNewOutDir, ".", totalThreads, colLoc);
+							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
+						}*/
+						
+						(*totalThreads)++;
+						traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
+						strcpy(((traverseDirectoryArgs*)args)->path, argv[i+1]);
+						((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
+						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
+						strcpy(((traverseDirectoryArgs*)args)->outPath, outPath);
+						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*)args)->colLoc = colLoc;
+						
+						pthread_t tid;
+						
+						void (*traverseFuncPointer)(void*) = traverseDirectory;
+						
+						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+						if(err != 0) {
+							printf("Fatal error: Thread did not create properly\n");
+							pthread_exit(0);
 						}
 					}
 				}
@@ -1126,18 +1196,36 @@ int main(int argc, char ** argv) {
 							exit(0);
 						}
 						fflush(0);
-						forkPid = fork();
+						/*forkPid = fork();
 						if(forkPid != 0) {
 							(*totalThreads)++;
 							//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-						}
+						}*/
 						/*if(forkPid == 0) {
 							totalProcesses = 0;
 							//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 						}*/
-						if(forkPid == 0){
+						/*if(forkPid == 0){
 					
-							traverseDirectory(argv[i+1], argv, sortingBy, 0, existsNewOutDir, ".", totalThreads, colLoc);
+							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
+						}*/
+						(*totalThreads)++;
+						//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
+						strcpy(((traverseDirectoryArgs*) args)->path, argv[i+1]);
+						((traverseDirectoryArgs*) args)->argv = argv;
+						((traverseDirectoryArgs*) args)->sortingBy = sortingBy;
+						((traverseDirectoryArgs*) args)->existsNewOutDir = existsNewOutDir;
+						strcpy(((traverseDirectoryArgs*) args)->outPath, ".");
+						((traverseDirectoryArgs*) args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*) args)->colLoc = colLoc;
+						
+						pthread_t tid;
+						void (*traverseFuncPointer)(void*) = traverseDirectory;
+						
+						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+						if(err != 0) {
+							printf("Fatal error: Thread did not create properly\n");
+							exit(0);
 						}
 					}
 				}
@@ -1210,18 +1298,36 @@ int main(int argc, char ** argv) {
 							exit(0);
 						}
 						fflush(0);
-						forkPid = fork();
+						/*forkPid = fork();
 						if(forkPid != 0) {
 							(*totalThreads)++;
 							//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-						}
+						}*/
 						/*if(forkPid == 0) {
 							totalProcesses = 0;
 							//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 						}*/
-						if(forkPid == 0){
+						/*if(forkPid == 0){
 					
-							traverseDirectory(argv[i+1], argv, sortingBy, 0, existsNewOutDir, ".", totalThreads, colLoc);
+							traverseDirectory(argv[i+1], argv, sortingBy, existsNewOutDir, ".", totalThreads, colLoc);
+						}*/
+						(*totalThreads)++;
+						traverseDirectoryArgs * args = malloc(sizeof(traverseDirectoryArgs));
+						strcpy(((traverseDirectoryArgs*)args)->path, argv[i+1]);
+						((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
+						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
+						strcpy(((traverseDirectoryArgs*)args)->outPath, ".");
+						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+						((traverseDirectoryArgs*)args)->colLoc = colLoc;
+						
+						pthread_t tid;
+						void (*traverseFuncPointer)(void*) = traverseDirectory;
+						
+						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+						if(err != 0) {
+							printf("Fatal error: Thread did not create properly\n");
+							exit(0);
 						}
 					}
 				}
@@ -1265,23 +1371,42 @@ int main(int argc, char ** argv) {
 		}
 		
 		fflush(0);
-		forkPid = fork();
+		/*forkPid = fork();
 		if(forkPid != 0) {
 			(*totalThreads)++;
 			//printf("\nmain-2: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-		}
+		}*/
 		/*if(forkPid == 0) {
 			totalProcesses = 0;
 			//printf("\nmain-2: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 		}*/
 		
-		if(forkPid == 0){
+		/*if(forkPid == 0){
 			if(outPath == NULL){
 				outPath = ".";
 			}
 			
 			//printf("outPath in main = %s\n", outPath);
-			traverseDirectory(cwd, argv, sortingBy, 0, existsNewOutDir, outPath, totalThreads, colLoc);
+			traverseDirectory(cwd, argv, sortingBy, existsNewOutDir, outPath, totalThreads, colLoc);
+		}*/
+		(*totalThreads)++;
+		
+		
+		strcpy(((traverseDirectoryArgs*)args)->path, cwd);
+		((traverseDirectoryArgs*)args)->argv = argv;
+		((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
+		((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
+		strcpy(((traverseDirectoryArgs*)args)->outPath, ".");
+		((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
+		((traverseDirectoryArgs*)args)->colLoc = colLoc;
+		
+		pthread_t tid;
+		void (*traverseFuncPointer)(void*) = traverseDirectory;
+						
+		err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+		if(err != 0) {
+			printf("Fatal error: Thread did not create properly\n");
+			exit(0);
 		}
 	}
 	/*
@@ -1297,20 +1422,20 @@ int main(int argc, char ** argv) {
 			totalProcesses += WEXITSTATUS(status);
 			//printf("\npid: %d, Exit status: %d\n", getpid(), WEXITSTATUS(status));
 			//printf("\nI am process: %d. I should be updating totalProcesses, it is now: %d.\n", getpid(),  totalProcesses);
-		}
-	}*/
-	wait(NULL);
-	if(cwd != NULL){
+		}*/
+	//wait(NULL);
+	/*if(cwd != NULL){
 		free(cwd);
-	}
+	}*/
 	fflush(0);
-	printf("\nTotal number of processes: %d\n", *totalThreads);
-	free(totalThreads);
+	printf("\nTotal number of processes: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
+	
+	//free(totalThreads);
 	//Jake: it seems that the first child is returning correctly and getting the proper status, let's do some more testing for children of children
 	
 	//Joe: Also, implement -o operation. Also, the fatal output error for if the file is already sorter is not necessary and will mess up the output.
 	
 	//NOTE: fflush(0) is necessary before forking in order to clear the I/O buffer to repeat incredibly repetitive output.
 	
-	exit(0);
+	return 0;
 }
