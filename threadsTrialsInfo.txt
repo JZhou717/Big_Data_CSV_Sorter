@@ -1,0 +1,192 @@
+Testing different speed of sorting using processes on various amount of files. There are 4 other files in the directory, but none of those are CSV so it should have a negligible impact on time. The csv files that are being sorted each have 300 lines of data in them, plus one line dedicated to the categories, so 301 lines in total. 
+
+Executed by using the linux command:
+
+(time ./sorter -c color -d /ilab/users/jjr263/FALL17/CS214/project2analysis -o /ilab/users/jjr263/FALL17/CS214/project2analysis) 2>> threadsTrialsInfo.txt
+
+Single Directory:
+
+	1 File:
+
+		real	0m1.007s
+		user	0m0.006s
+		sys	0m0.006s
+
+		real	0m1.008s
+		user	0m0.008s
+		sys	0m0.007s
+
+		real	0m1.012s
+		user	0m0.011s
+		sys	0m0.008s
+
+	2 Files:
+
+		real	0m1.012s
+		user	0m0.013s
+		sys	0m0.012s
+
+		real	0m1.015s
+		user	0m0.018s
+		sys	0m0.009s
+
+		real	0m1.010s
+		user	0m0.013s
+		sys	0m0.008s
+
+	4 Files:
+
+		real	0m1.015s
+		user	0m0.024s
+		sys	0m0.013s
+
+		real	0m1.022s
+		user	0m0.032s
+		sys	0m0.025s
+
+		real	0m1.015s
+		user	0m0.031s
+		sys	0m0.017s
+
+	8 Files:
+
+		real	0m1.027s
+		user	0m0.048s
+		sys	0m0.030s
+
+		real	0m1.026s
+		user	0m0.050s
+		sys	0m0.027s
+
+		real	0m1.023s
+		user	0m0.050s
+		sys	0m0.016s
+
+	16 Files:
+
+		real	0m1.042s
+		user	0m0.135s
+		sys	0m0.043s
+
+		real	0m1.031s
+		user	0m0.090s
+		sys	0m0.027s
+
+		real	0m1.027s
+		user	0m0.097s
+		sys	0m0.036s
+
+	32 Files:
+
+		real	0m1.027s
+		user	0m0.166s
+		sys	0m0.034s
+
+		real	0m1.026s
+		user	0m0.145s
+		sys	0m0.032s
+
+		real	0m1.027s
+		user	0m0.136s
+		sys	0m0.046s
+
+	64 Files:
+
+		real	0m1.049s
+		user	0m0.309s
+		sys	0m0.066s
+
+		real	0m1.054s
+		user	0m0.319s
+		sys	0m0.071s
+
+		real	0m1.058s
+		user	0m0.343s
+		sys	0m0.087s
+
+	128 Files:
+
+		real	0m1.128s
+		user	0m0.704s
+		sys	0m0.142s
+
+		real	0m1.106s
+		user	0m0.742s
+		sys	0m0.160s
+
+		real	0m1.102s
+		user	0m0.661s
+		sys	0m0.156s
+
+	256 Files:
+
+		real	0m1.084s
+		user	0m0.598s
+		sys	0m0.186s
+
+		real	0m1.083s
+		user	0m0.571s
+		sys	0m0.187s
+
+		real	0m1.111s
+		user	0m0.760s
+		sys	0m0.201s
+
+	512 Files:
+
+		real	0m1.125s
+		user	0m0.692s
+		sys	0m0.294s
+
+		real	0m1.114s
+		user	0m0.760s
+		sys	0m0.316s
+
+		real	0m1.105s
+		user	0m0.694s
+		sys	0m0.282s
+
+	1024 Files:
+
+		real	0m1.383s
+		user	0m0.527s
+		sys	0m0.518s
+
+		real	0m1.083s
+		user	0m0.529s
+		sys	0m0.461s
+
+		real	0m1.874s
+		user	0m0.871s
+		sys	0m0.520s
+		
+Executed by using the linux command:
+(time ./sorter -c color -d /ilab/users/jjr263/FALL17/CS214/project2analysis) 2>> processTrialsInfo.txt
+
+1 Main directory and 3 sub-directories, 1 csv file of 301 lines again and the other 4 files mentioned above in each:
+		
+	real	0m1.021s
+	user	0m0.032s
+	sys	0m0.021s
+
+	real	0m1.035s
+	user	0m0.053s
+	sys	0m0.030s
+
+	real	0m1.014s
+	user	0m0.025s
+	sys	0m0.010s
+	
+1 Main directory and 3 sub-directories, 16 csv file of 301 lines again and the other 4 files mentioned above in each:
+
+	real	0m1.036s
+	user	0m0.116s
+	sys	0m0.058s
+
+	real	0m1.030s
+	user	0m0.044s
+	sys	0m0.067s
+
+	real	0m1.027s
+	user	0m0.053s
+	sys	0m0.060s

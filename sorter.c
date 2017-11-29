@@ -10,8 +10,13 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+
 //volatile int runningThreadCount = 0;
-//pthread_mutex_t thread_counter = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t thread_ID_list = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t file_open_lock = PTHREAD_MUTEX_INITIALIZER;
+
+threadIds * threadIdsHead = NULL;
+threadIds* threadIdsRear = NULL;
 
 movie* freePtr(movie* node){
 	if(node == NULL){
@@ -218,18 +223,27 @@ void * sortFile(void * args){
 
 	printf("%u,", (unsigned int) pthread_self());
 	
+	//printf("current path = %s\n", path);
+	
+	//printf("REAR TID %u\n", (unsigned int) threadIdsRear->tid);
 	
 	//printf("outPath in sortFile = %s\n", path);
 	movie * headMovies = NULL;
 	
 	//printf("current fileName = %s\n", fileName);
 	
-	FILE* filePointer = fopen(fileName, "r");
-
+	pthread_mutex_lock(&file_open_lock);
+	char* filePath = (char*)malloc(sizeof(char) * strlen(path) + 30);
+	memcpy(filePath, path, strlen(path));
+	strcat(filePath, "/");
+	strcat(filePath, fileName);
+	FILE* filePointer = fopen(filePath, "r");
+	
 	if(filePointer == NULL){
-		printf("Fatal Error: The file does not exist.\n");
+		printf("Fatal Error: The file <%s> does not exist.\n", filePath);
 		pthread_exit(0);
 	}
+	free(filePath);
 	char* categories = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
 	char* line = (char*)malloc(sizeof(char)*500);
 	memset(line, '\0', 500);
@@ -241,7 +255,7 @@ void * sortFile(void * args){
 	
 	if(strcmp(line, categories) !=  0){
 		printf("Fatal Error: The input file \"%s\" does not adhere to specified format\n", fileName);
-		//fclose(filePointer);
+		fclose(filePointer);
 		pthread_exit(0);
 	}
 	//Create new file name to output to.
@@ -422,7 +436,7 @@ void * sortFile(void * args){
 		templine = realloc(templine, 500);
 		hasQuotes = 0;
 	}
-
+	pthread_mutex_unlock(&file_open_lock);
 	//Given the head pointer to the start of the Linked List structure and a category to sort by, perform a merge sort.
 	merge(&headMovies, sortingBy);
 
@@ -442,6 +456,7 @@ void * sortFile(void * args){
 	//free(line);
 	//free(templine);
 	//fclose(outputFile);
+	
 	//fclose(filePointer);
 	
 	//return childCount;
@@ -451,6 +466,8 @@ void * sortFile(void * args){
 
 //This function will recursively traverse through the original given file path. If a directory is found within the original directory, the process will fork and recursively call the traverseDirectory() function. If a file is found, the function will determine whether or not it is a CSV, and then fork if it is.
 void * traverseDirectory(void * args){
+	//printf("ENTER TRAVERSE\n");
+	
 	char * path = NULL;
 	path = strdup(((traverseDirectoryArgs*)args)->path);
 	char** argv = ((traverseDirectoryArgs*)args)->argv;
@@ -462,6 +479,24 @@ void * traverseDirectory(void * args){
 	int colLoc = ((traverseDirectoryArgs*)args)->colLoc;
 	
 	printf("%u,", (unsigned int) pthread_self());
+	
+	pthread_mutex_lock(&thread_ID_list);
+	if(threadIdsHead == NULL){
+		threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+		threadIdsHead->tid = pthread_self();
+		threadIdsHead->next = NULL;
+		
+		threadIdsRear = threadIdsHead;
+	}
+	else{
+		threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+		threadIdsRear = threadIdsRear->next;
+		threadIdsRear->tid = pthread_self();
+		threadIdsHead->next = NULL;
+	}
+	pthread_mutex_unlock(&thread_ID_list);
+	
+	//printf("REAR TID %u\n", (unsigned int) threadIdsRear->tid);
 	
 	//printf("outPath in traverseDir = %s\n", outPath);
 	//flag to see if we printed or not, defaul 0, will be set to current pid after pid printed, must be passed because same process can recursively call traverseDirectory()
@@ -545,13 +580,28 @@ void * traverseDirectory(void * args){
 				void * (*traverseFuncPointer)(void*) = traverseDirectory;
 				
 				err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
-				
 				if(err != 0) {
 					printf("Fatal error: Thread did not create properly\n");
 					//Should it be exit or return?
 					pthread_exit(0);
 				}
-				pthread_join(tid, NULL);
+				
+				pthread_mutex_lock(&thread_ID_list);
+				if(threadIdsHead == NULL){
+					threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+					threadIdsHead->tid = tid;
+					threadIdsHead->next = NULL;
+		
+					threadIdsRear = threadIdsHead;
+				}
+				else{
+					threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+					threadIdsRear = threadIdsRear->next;
+					threadIdsRear->tid = tid;
+					threadIdsHead->next = NULL;
+				}
+				pthread_mutex_unlock(&thread_ID_list);
+				//pthread_join(tid, NULL);
 				
 				//traverseDirectory(newPath, argv, sortingBy, existsNewOutDir, outPath, totalThreads, colLoc);
 				//printf("\nbut does it get here\n");
@@ -589,6 +639,7 @@ void * traverseDirectory(void * args){
 				
 				sortFileArgs * sortArgs = malloc(sizeof(sortFileArgs));
 				
+				//printf("currentObject->d_name = %s\n", currentObject->d_name);
 				((sortFileArgs*)sortArgs)->fileName = strdup(currentObject->d_name);
 				((sortFileArgs*)sortArgs)->argv = argv;
 				((sortFileArgs*)sortArgs)->sortingBy = sortingBy;
@@ -600,7 +651,7 @@ void * traverseDirectory(void * args){
 				}
 				else{
 					//sortFile(currentObject->d_name, argv, sortingBy, ".", colLoc);
-					((sortFileArgs*)sortArgs)->path = ".";
+					((sortFileArgs*)sortArgs)->path = getcwd(((sortFileArgs*)sortArgs)->path, 1024);
 				}
 				
 				void * (*sortFuncPointer)(void*) = sortFile;
@@ -610,7 +661,23 @@ void * traverseDirectory(void * args){
 					printf("Fatal Error: Something went wrong with thread creation.\n");
 					pthread_exit(0);
 				}
-				pthread_join(tid, NULL);
+				
+				pthread_mutex_lock(&thread_ID_list);
+				if(threadIdsHead == NULL){
+					threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+					threadIdsHead->tid = tid;
+					threadIdsHead->next = NULL;
+		
+					threadIdsRear = threadIdsHead;
+				}
+				else{
+					threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+					threadIdsRear = threadIdsRear->next;
+					threadIdsRear->tid = tid;
+					threadIdsHead->next = NULL;
+				}
+				pthread_mutex_unlock(&thread_ID_list);
+				//pthread_join(tid, NULL);
 			}
 		}
 		//printf("\nare we restarting the loop before printing again? We must be\n");
@@ -871,7 +938,7 @@ int main(int argc, char ** argv) {
 	//printf("\nargc = %d\n", argc);
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
-	printf("TIDS of all child threads: ");
+	printf("\tTIDS of all child threads: ");
 
 	//int forkPid;
 	//printf("\nDid we pass this check?\n");
@@ -1134,7 +1201,22 @@ int main(int argc, char ** argv) {
 							printf("Fatal error: Thread did not create properly\n");
 							pthread_exit(0);
 						}
-						pthread_join(tid, NULL);
+						pthread_mutex_lock(&thread_ID_list);
+						if(threadIdsHead == NULL){
+							threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsHead->tid = tid;
+							threadIdsHead->next = NULL;
+		
+							threadIdsRear = threadIdsHead;
+						}
+						else{
+							threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsRear = threadIdsRear->next;
+							threadIdsRear->tid = tid;
+							threadIdsHead->next = NULL;
+						}
+						pthread_mutex_unlock(&thread_ID_list);
+						//pthread_join(tid, NULL);
 					}
 				}
 				else {
@@ -1227,7 +1309,7 @@ int main(int argc, char ** argv) {
 						((traverseDirectoryArgs*) args)->argv = argv;
 						((traverseDirectoryArgs*) args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*) args)->existsNewOutDir = existsNewOutDir;
-						((traverseDirectoryArgs*) args)->outPath = ".";
+						((traverseDirectoryArgs*) args)->outPath = getcwd(((traverseDirectoryArgs*) args)->outPath, 1024);
 						((traverseDirectoryArgs*) args)->totalThreads = totalThreads;
 						((traverseDirectoryArgs*) args)->colLoc = colLoc;
 						
@@ -1239,7 +1321,22 @@ int main(int argc, char ** argv) {
 							printf("Fatal error: Thread did not create properly\n");
 							exit(0);
 						}
-						pthread_join(tid, NULL);
+						pthread_mutex_lock(&thread_ID_list);
+						if(threadIdsHead == NULL){
+							threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsHead->tid = tid;
+							threadIdsHead->next = NULL;
+		
+							threadIdsRear = threadIdsHead;
+						}
+						else{
+							threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsRear = threadIdsRear->next;
+							threadIdsRear->tid = tid;
+							threadIdsHead->next = NULL;
+						}
+						pthread_mutex_unlock(&thread_ID_list);
+						//pthread_join(tid, NULL);
 					}
 				}
 				else {
@@ -1330,7 +1427,7 @@ int main(int argc, char ** argv) {
 						((traverseDirectoryArgs*)args)->argv = argv;
 						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
-						((traverseDirectoryArgs*)args)->outPath = ".";
+						((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 						((traverseDirectoryArgs*)args)->colLoc = colLoc;
 						
@@ -1342,7 +1439,22 @@ int main(int argc, char ** argv) {
 							printf("Fatal error: Thread did not create properly\n");
 							exit(0);
 						}
-						pthread_join(tid, NULL);
+						pthread_mutex_lock(&thread_ID_list);
+						if(threadIdsHead == NULL){
+							threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsHead->tid = tid;
+							threadIdsHead->next = NULL;
+		
+							threadIdsRear = threadIdsHead;
+						}
+						else{
+							threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+							threadIdsRear = threadIdsRear->next;
+							threadIdsRear->tid = tid;
+							threadIdsHead->next = NULL;
+						}
+						pthread_mutex_unlock(&thread_ID_list);
+						//pthread_join(tid, NULL);
 					}
 				}
 				else {
@@ -1410,7 +1522,7 @@ int main(int argc, char ** argv) {
 		((traverseDirectoryArgs*)args)->argv = argv;
 		((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 		((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
-		((traverseDirectoryArgs*)args)->outPath = ".";
+		((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 		((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 		((traverseDirectoryArgs*)args)->colLoc = colLoc;
 		
@@ -1422,7 +1534,23 @@ int main(int argc, char ** argv) {
 			printf("Fatal error: Thread did not create properly\n");
 			exit(0);
 		}
-		pthread_join(tid, NULL);
+		pthread_mutex_lock(&thread_ID_list);
+		if(threadIdsHead == NULL){
+			threadIdsHead = (threadIds*)malloc(sizeof(threadIds));
+			threadIdsHead->tid = tid;
+			threadIdsHead->next = NULL;
+		
+			threadIdsRear = threadIdsHead;
+		}
+		else{
+			threadIdsRear->next = (threadIds*)malloc(sizeof(threadIds));
+			threadIdsRear = threadIdsRear->next;
+			threadIdsRear->tid = tid;
+			threadIdsHead->next = NULL;
+		}
+		pthread_mutex_unlock(&thread_ID_list);
+		
+		//pthread_join(tid, NULL);
 	}
 	/*
 	if(forkPid != 0){
@@ -1443,7 +1571,7 @@ int main(int argc, char ** argv) {
 		free(cwd);
 	}*/
 	fflush(0);
-	printf("\nTotal number of threads: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
+	
 	
 	//free(totalThreads);
 	//Jake: it seems that the first child is returning correctly and getting the proper status, let's do some more testing for children of children
@@ -1451,7 +1579,16 @@ int main(int argc, char ** argv) {
 	//Joe: Also, implement -o operation. Also, the fatal output error for if the file is already sorter is not necessary and will mess up the output.
 	
 	//NOTE: fflush(0) is necessary before forking in order to clear the I/O buffer to repeat incredibly repetitive output.
+	//printf("END OF MAIN THREADIDSHEAD TID = %u\n", (unsigned int) threadIdsHead->tid);
 	
 	
+	sleep(1);
+	//printf("threadIdsHead->tid = %u\n", (unsigned int) threadIdsHead->tid);
+	do{
+		pthread_join(threadIdsHead->tid, NULL);
+		threadIdsHead = threadIdsHead->next;
+	}while(threadIdsHead != NULL);
+	
+	printf("\n\tTotal number of threads: %d\n", *(((traverseDirectoryArgs*)args)->totalThreads));
 	return 0;
 }

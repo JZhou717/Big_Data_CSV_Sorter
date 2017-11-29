@@ -51,6 +51,13 @@
 		struct movies * next;
 	}movie; /* Movie nodes with all the information needed */
 	
+	typedef struct _threadIds{
+		pthread_t tid;
+		
+		struct _threadIds * next;
+	}threadIds;
+	
+	
 	//Struct containing arguments for sortFile
 	typedef struct sortFileArg {
 		char* fileName;
