@@ -75,8 +75,8 @@
 	movie* createNode(char** catToked, int hasQuotes);
 	char* spaceTrim(char* string);
 	int sortByCategory(char* sortColumnName);
-	void sortFile(void * args);
-	void traverseDirectory(void * args);
+	void * sortFile(void * args);
+	void * traverseDirectory(void * args);
 	void printNodes(movie * currPtr, FILE* outputFile);
 
 	//Prototypes for the functions we're using in mergesort.c - DOCUMENTATION IS IN THAT FILE
