@@ -67,6 +67,7 @@
 		//int colLoc;
 		movie* globalHead;
 		movie* globalRear;
+		int * runningThreadCount;
 	}sortFileArgs;
 	
 	typedef struct traverseArg {
@@ -79,6 +80,7 @@
 		int colLoc;
 		movie* globalHead;
 		movie* globalRear;
+		int * runningThreadCount;
 	}traverseDirectoryArgs;
 	
 	//sorter.c helper method prototypes
