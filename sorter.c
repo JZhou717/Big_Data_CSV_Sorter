@@ -11,15 +11,19 @@
 #include <pthread.h>
 
 
+
 pthread_mutex_t thread_ID_list = PTHREAD_MUTEX_INITIALIZER;
 //pthread_mutex_t file_open_lock = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_mutex_t running_thread_count = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t total_thread_count = PTHREAD_MUTEX_INITIALIZER;
-
+pthread_mutex_t global_linkedlist = PTHREAD_MUTEX_INITIALIZER;
 
 threadIds * threadIdsHead = NULL;
 threadIds* threadIdsRear = NULL;
 
+movie * globalHead = NULL;
+movie * globalRear = NULL;
 
 movie* freePtr(movie* node){
 	if(node == NULL){
@@ -224,11 +228,9 @@ void * sortFile(void * args){
 	char * path = NULL;
 	path = strdup(((sortFileArgs *)args)->path);
 	//int colLoc = ((sortFileArgs *)args)->colLoc;
-	movie* globalHead = ((sortFileArgs *)args)->globalHead;
-	movie* globalRear = ((sortFileArgs *)args)->globalRear;
-	int * runningThreadCount = ((sortFileArgs *)args)->runningThreadCount;
+	int* runningThreadCount = ((sortFileArgs *)args)->runningThreadCount;
 
-	//printf("%u,", (unsigned int) pthread_self());
+	printf("%u,", (unsigned int) pthread_self());
 	
 	//printf("current path = %s\n", path);
 	
@@ -248,6 +250,9 @@ void * sortFile(void * args){
 	
 	if(filePointer == NULL){
 		printf("Fatal Error: The file <%s> does not exist.\n", filePath);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	free(filePath);
@@ -263,19 +268,19 @@ void * sortFile(void * args){
 	if(strcmp(line, categories) !=  0){
 		printf("Fatal Error: The input file \"%s\" does not adhere to specified format\n", fileName);
 		fclose(filePointer);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
+	/*
 	//Create new file name to output to.
-	//char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
-	/*char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen("AllFiles") + 30)));
+	char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
 	//Determine where endOfFileName is, subtract 4 (accounts for ".csv"). Then, concatenate "-sorted-<category>.csv".
-	//int endOfFileName = strlen(fileName) - 4;
-	int endOfFileName = strlen("AllFiles") - 4;
+	int endOfFileName = strlen(fileName) - 4;
 	
-	//char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
-	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen("AllFiles") + 1)));
-	//truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
-	truncatedFileName = memcpy(truncatedFileName, "AllFiles", endOfFileName);
+	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
+	truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
 	
 	truncatedFileName[endOfFileName + 1] = '\0';
 	
@@ -286,10 +291,13 @@ void * sortFile(void * args){
 	strcat(newFileName, truncatedFileName);
 	strcat(newFileName, "-sorted-");
 	strcat(newFileName, argv[colLoc]);
-	strcat(newFileName, ".csv");*/
+	strcat(newFileName, ".csv");
 	//printf("NEW FILE NAME: %s\n", newFileName);
 	
 	//printf("Printing out into the file: %s\n", newFileName);
+	
+	*/
+	
 
 
 	int i;
@@ -299,22 +307,27 @@ void * sortFile(void * args){
 	
 	
 	//printf("\nnewFileName = %s\n", newFileName);
-	//FILE* outputFile = fopen(newFileName, "r");
+	/*FILE* outputFile = fopen(newFileName, "r");
 	
 	
 	//If outputFile already exists, don't even bother with rest of method.
-	/*if(outputFile != NULL){
+	if(outputFile != NULL){
 		//printf("Fatal Error: File \"%s\" already exists.\n", newFileName);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
-	else{*/
+	else{
 		//printf("OUTPUTFILE OPENED\n\n");
-	//FILE* outputFile = fopen(newFileName, "w");
-	//}
-	//outputFile = fopen(newFileName, "w");
-	
+		outputFile = fopen(newFileName, "w");
+	}
+	*/
 	if(line == NULL){
 		printf("Fatal Error: The input file is blank.\n");
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 
@@ -445,36 +458,35 @@ void * sortFile(void * args){
 		templine = realloc(templine, 500);
 		hasQuotes = 0;
 	}
-	
-	
+	//pthread_mutex_unlock(&file_open_lock);
 	//Given the head pointer to the start of the Linked List structure and a category to sort by, perform a merge sort.
 	merge(&headMovies, sortingBy);
-
-	/*movie* currPtr = (movie*)malloc(sizeof(movie));
-	currPtr = headMovies;
 	
-	printNodes(currPtr, outputFile);*/
-	
-	//If this is the first file we are working with and there is no data in the global linked list yet, make this the global linked list
-	if(globalHead == NULL) {
+	pthread_mutex_lock(&global_linkedlist);
+	if(globalHead == NULL){
 		globalHead = headMovies;
 		globalRear = rearMovies;
 	}
-	else { //otherwise, append this list to the global linked list
+	else{
 		globalRear->next = headMovies;
+		globalRear = globalRear->next;
 	}
 	
-	//To keep everything sorted, mergesort again on the new appended list
-	merge(&globalHead, sortingBy);
+	//merge(&globalHead, sortingBy);
+	pthread_mutex_unlock(&global_linkedlist);
 	
-	//pthread_mutex_unlock(&file_open_lock);
+	//movie* currPtr = (movie*)malloc(sizeof(movie));
+	//currPtr = headMovies;
+	
+	//printf("\n\nTIME TO PRINT\n\n");
+	//printNodes(currPtr, outputFile);
+
 	//This section of code will free the allocated memory for each pointer, struct, etc
 	//free(categories);
 	//free(truncatedFileName);
 	//free(newFileName);
 	//freePtr(headMovies);
-	free(headMovies);
-	free(rearMovies);
+	//free(rearMovies);
 	//free(currPtr);
 	//free(line);
 	//free(templine);
@@ -484,12 +496,12 @@ void * sortFile(void * args){
 	
 	//return childCount;
 	
-	
 	pthread_mutex_lock(&running_thread_count);
 	(*runningThreadCount)--;
 	pthread_mutex_unlock(&running_thread_count);
 	
 	//printf("YAY IM EXITING FROM SORTFILE\n");
+	
 	pthread_exit(0);
 	return NULL;
 }
@@ -500,7 +512,7 @@ void * traverseDirectory(void * args){
 	
 	char * path = NULL;
 	path = strdup(((traverseDirectoryArgs*)args)->path);
-	//char** argv = ((traverseDirectoryArgs*)args)->argv;
+	char** argv = ((traverseDirectoryArgs*)args)->argv;
 	int sortingBy = ((traverseDirectoryArgs*)args)->sortingBy;
 	int existsNewOutDir = ((traverseDirectoryArgs*)args)->existsNewOutDir;
 	char * outPath = NULL;;
@@ -508,10 +520,8 @@ void * traverseDirectory(void * args){
 	int* totalThreads = ((traverseDirectoryArgs*)args)->totalThreads;
 	int* runningThreadCount = ((traverseDirectoryArgs*)args)->runningThreadCount;
 	int colLoc = ((traverseDirectoryArgs*)args)->colLoc;
-	movie* globalHead = ((traverseDirectoryArgs*)args)->globalHead;
-	movie* globalRear = ((traverseDirectoryArgs*)args)->globalRear;
 	
-	//printf("%u,", (unsigned int) pthread_self());
+	printf("%u,", (unsigned int) pthread_self());
 	
 	pthread_mutex_lock(&thread_ID_list);
 	if(threadIdsHead == NULL){
@@ -545,8 +555,11 @@ void * traverseDirectory(void * args){
 	//printf("path to file = %s\n", path);
 	
 	if((directoryPointer = opendir(path)) == NULL){
-		printf("Fatal Error: The directory does not exist.\n");
+		printf("Fatal Error: The directory <%s> does not exist.\n", path);
 		//return;
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	
@@ -594,6 +607,7 @@ void * traverseDirectory(void * args){
 				
 				//Repeat process with new directory
 				//printf("\nduplicate child prob gets here\n");
+				
 				pthread_mutex_lock(&total_thread_count);
 				(*totalThreads)++;
 				pthread_mutex_unlock(&total_thread_count);
@@ -601,6 +615,7 @@ void * traverseDirectory(void * args){
 				pthread_mutex_lock(&running_thread_count);
 				(*runningThreadCount)++;
 				pthread_mutex_unlock(&running_thread_count);
+				
 				
 				//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
 				
@@ -613,8 +628,6 @@ void * traverseDirectory(void * args){
 				((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 				((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 				((traverseDirectoryArgs*)args)->colLoc = colLoc;
-				((traverseDirectoryArgs*)args)->globalHead = globalHead;
-				((traverseDirectoryArgs*)args)->globalRear = globalRear;
 				
 				void * (*traverseFuncPointer)(void*) = traverseDirectory;
 				
@@ -622,6 +635,9 @@ void * traverseDirectory(void * args){
 				if(err != 0) {
 					printf("Fatal error: Thread did not create properly\n");
 					//Should it be exit or return?
+					pthread_mutex_lock(&running_thread_count);
+					(*runningThreadCount)--;
+					pthread_mutex_unlock(&running_thread_count);
 					pthread_exit(0);
 				}
 				
@@ -672,6 +688,7 @@ void * traverseDirectory(void * args){
 					//printf("\ntraverse-else: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
 				}*/
 				
+				
 				pthread_mutex_lock(&total_thread_count);
 				(*totalThreads)++;
 				pthread_mutex_unlock(&total_thread_count);
@@ -686,12 +703,11 @@ void * traverseDirectory(void * args){
 				
 				//printf("currentObject->d_name = %s\n", currentObject->d_name);
 				((sortFileArgs*)sortArgs)->fileName = strdup(currentObject->d_name);
-				//((sortFileArgs*)sortArgs)->argv = argv;
+				((sortFileArgs*)sortArgs)->argv = argv;
 				((sortFileArgs*)sortArgs)->sortingBy = sortingBy;
-				//((sortFileArgs*)sortArgs)->colLoc = colLoc;
-				((sortFileArgs*)args)->globalHead = globalHead;
-				((sortFileArgs*)args)->globalRear = globalRear;
-				((sortFileArgs*)args)->runningThreadCount = runningThreadCount;
+				((sortFileArgs*)sortArgs)->colLoc = colLoc;
+				((sortFileArgs*)sortArgs)->runningThreadCount = runningThreadCount;
+				
 				
 				if(existsNewOutDir == 1){
 					//sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
@@ -707,6 +723,9 @@ void * traverseDirectory(void * args){
 				err = pthread_create(&tid, NULL, sortFuncPointer, (void*)sortArgs);
 				if(err != 0) {
 					printf("Fatal Error: Something went wrong with thread creation.\n");
+					pthread_mutex_lock(&running_thread_count);
+					(*runningThreadCount)--;
+					pthread_mutex_unlock(&running_thread_count);
 					pthread_exit(0);
 				}
 				
@@ -981,21 +1000,16 @@ void printNodes(movie * currPtr, FILE* outputFile)
 		}
 			currPtr = currPtr->next;
 	}	
+	
+	
 	//fclose(outputFile);
+	
 }
 
 //The main function is our driver that will call various functions as necessary. Such functions perform the tasks of creating new Linked List nodes, trimming spaces of strings, determining the category we are sorting by, and printing out the sorted Linked List.
 int main(int argc, char ** argv) {
-	
-	//Pointer to the global sorted linked list that we are keeping all of our movies in
-	movie * globalHead = (movie *)malloc(sizeof(movie));
-	movie * globalRear = (movie *)malloc(sizeof(movie));
-	
-	globalHead = NULL;
-	globalRear = NULL;
-	
-	FILE* outputFile;
-	
+	char * execPath = NULL;
+	execPath = getcwd(execPath, 1024);
 	int * totalThreads = (int *)malloc(sizeof(int));
 	*totalThreads = 0;
 	int * runningThreadCount = (int *)malloc(sizeof(int));
@@ -1007,162 +1021,6 @@ int main(int argc, char ** argv) {
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
 	printf("\tTIDS of all child threads: ");
-
-
-	//int forkPid;
-	//printf("\nDid we pass this check?\n");
-	
-	/* Start of previous input flags code
-	
-	//This must ALWAYS be present
-	if (strcmp(argv[1], "-c") != 0){
-		printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-		exit(0);
-	}
-	
-	int sortingBy = -1;
-	sortingBy = sortByCategory(argv[2]);
-	
-	int forkPid;
-	//Default for searchDir should be current directory, default for outputDir should be whatever searchDir is. Think Joe wanted to wait until after input checks to see if he has to do that.
-	DIR* searchDir = NULL;
-	DIR* outputDir = NULL;
-	char* outPath = NULL;
-	
-	//Checking to see if we are going to be searching in a specific directory instead of current
-	if((argc == 5) && (argv[3] != NULL)){
-		if((strcmp(argv[3], "-d") != 0) && (strcmp(argv[3], "-o") != 0)){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else if(strcmp(argv[3], "-o") == 0) {
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> -o <outputdir>\n");
-				exit(0);
-			}
-			else{
-				outputDir = opendir(argv[4]);
-				if(outputDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				existsNewOutDir = 1;
-				if(strcmp(argv[4], "./") == 0){
-					
-					outPath = getcwd(outPath, 1024);
-				}
-				else if(strstr(argv[4], "../")){
-					outPath = getcwd(outPath, 1024);
-					outPath = strcat(outPath, "/");
-					outPath = strcat(outPath, argv[4]);
-					//printf("outPath = %s\n", outPath);
-				}
-				else{
-					outPath = strdup(argv[4]);
-				}
-				//printf("outPath in main = %s\n", outPath);
-			}
-		}
-		//The 4 output will be -d
-		else{
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				searchDir = opendir(argv[4]);
-				if(searchDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				fflush(0);
-				forkPid = fork();
-				if(forkPid != 0) {
-					totalProcesses++;
-					//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0) {
-					totalProcesses = 0;
-					//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0){
-					
-					traverseDirectory(argv[4], argv, sortingBy, totalProcesses, 0, existsNewOutDir, ".");
-				}
-			}
-		}
-	}
-	//Checking to see if we are going to be searching and outputting to a specific directory instead of current
-	if((argc == 7) && (argv[5] != NULL)){
-		if(strcmp(argv[5], "-o") != 0){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else if(strcmp(argv[3], "-d") != 0){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else{
-			if(argv[6] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				outputDir = opendir(argv[6]);
-				if(outputDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				existsNewOutDir = 1;
-				
-				if(strcmp(argv[6], "./") == 0){
-					
-					outPath = getcwd(outPath, 1024);
-				}
-				else if(strstr(argv[6], "../")){
-					outPath = getcwd(outPath, 1024);
-					outPath = strcat(outPath, "/");
-					outPath = strcat(outPath, argv[6]);
-					//printf("outPath = %s\n", outPath);
-				}
-				else{
-					outPath = strdup(argv[6]);
-				}
-				
-				//printf("outPath in main = %s\n", outPath);
-			}
-		
-		//The 4 output will be -d
-		
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				searchDir = opendir(argv[4]);
-				if(searchDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				fflush(0);
-				forkPid = fork();
-				if(forkPid != 0) {
-					totalProcesses++;
-					//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0) {
-					totalProcesses = 0;
-					//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0){
-					
-					traverseDirectory(argv[4], argv, sortingBy, totalProcesses, 0, existsNewOutDir, outPath);
-				}
-			}
-		}
-	}
-	End of previous input flags code*/
-	
 	
 	//The input format will be incorrect if argc is 1, or an even number
 	if((argc == 1) || ((argc % 2) == 0)){
@@ -1261,15 +1119,13 @@ int main(int argc, char ** argv) {
 						
 						traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*)args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->argv = argv;
 						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*)args)->outPath = strdup(outPath);
 						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 						((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*)args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						
@@ -1278,6 +1134,9 @@ int main(int argc, char ** argv) {
 						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
 						if(err != 0) {
 							printf("Fatal error: Thread did not create properly\n");
+							pthread_mutex_lock(&running_thread_count);
+							(*runningThreadCount)--;
+							pthread_mutex_unlock(&running_thread_count);
 							pthread_exit(0);
 						}
 						pthread_mutex_lock(&thread_ID_list);
@@ -1390,18 +1249,15 @@ int main(int argc, char ** argv) {
 						(*runningThreadCount)++;
 						pthread_mutex_unlock(&running_thread_count);
 						
-						
 						//traverseDirectoryArgs args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*) args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*) args)->argv = argv;
+						((traverseDirectoryArgs*) args)->argv = argv;
 						((traverseDirectoryArgs*) args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*) args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*) args)->outPath = getcwd(((traverseDirectoryArgs*) args)->outPath, 1024);
 						((traverseDirectoryArgs*) args)->totalThreads = totalThreads;
 						((traverseDirectoryArgs*) args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*) args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1521,15 +1377,13 @@ int main(int argc, char ** argv) {
 						
 						traverseDirectoryArgs * args = malloc(sizeof(traverseDirectoryArgs));
 						((traverseDirectoryArgs*)args)->path = strdup(argv[i+1]);
-						//((traverseDirectoryArgs*)args)->argv = argv;
+						((traverseDirectoryArgs*)args)->argv = argv;
 						((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 						((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 						((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 						((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 						((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 						((traverseDirectoryArgs*)args)->colLoc = colLoc;
-						((traverseDirectoryArgs*)args)->globalHead = globalHead;
-						((traverseDirectoryArgs*)args)->globalRear = globalRear;
 						
 						pthread_t tid;
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1615,7 +1469,6 @@ int main(int argc, char ** argv) {
 			//printf("outPath in main = %s\n", outPath);
 			traverseDirectory(cwd, argv, sortingBy, existsNewOutDir, outPath, totalThreads, colLoc);
 		}*/
-		
 		pthread_mutex_lock(&total_thread_count);
 		(*totalThreads)++;
 		pthread_mutex_unlock(&total_thread_count);
@@ -1625,15 +1478,13 @@ int main(int argc, char ** argv) {
 		pthread_mutex_unlock(&running_thread_count);
 		
 		((traverseDirectoryArgs*)args)->path = strdup(cwd);
-		//((traverseDirectoryArgs*)args)->argv = argv;
+		((traverseDirectoryArgs*)args)->argv = argv;
 		((traverseDirectoryArgs*)args)->sortingBy = sortingBy;
 		((traverseDirectoryArgs*)args)->existsNewOutDir = existsNewOutDir;
 		((traverseDirectoryArgs*)args)->outPath = getcwd(((traverseDirectoryArgs*)args)->outPath, 1024);
 		((traverseDirectoryArgs*)args)->totalThreads = totalThreads;
 		((traverseDirectoryArgs*)args)->runningThreadCount = runningThreadCount;
 		((traverseDirectoryArgs*)args)->colLoc = colLoc;
-		((traverseDirectoryArgs*)args)->globalHead = globalHead;
-		((traverseDirectoryArgs*)args)->globalRear = globalRear;
 		
 		pthread_t tid;
 		void * (*traverseFuncPointer)(void*) = traverseDirectory;
@@ -1661,24 +1512,7 @@ int main(int argc, char ** argv) {
 		
 		//pthread_join(tid, NULL);
 	}
-	/*
-	if(forkPid != 0){
-		wait(NULL);
-	}
-	*/
-	/*i = 0;
-	int total = totalProcesses;
-	for(i = 0; i < total; i++) {
-		wait(&status);
-		if(WIFEXITED(status)) {
-			totalProcesses += WEXITSTATUS(status);
-			//printf("\npid: %d, Exit status: %d\n", getpid(), WEXITSTATUS(status));
-			//printf("\nI am process: %d. I should be updating totalProcesses, it is now: %d.\n", getpid(),  totalProcesses);
-		}*/
-	//wait(NULL);
-	/*if(cwd != NULL){
-		free(cwd);
-	}*/
+	
 	fflush(0);
 	
 	
@@ -1690,78 +1524,43 @@ int main(int argc, char ** argv) {
 	//NOTE: fflush(0) is necessary before forking in order to clear the I/O buffer to repeat incredibly repetitive output.
 	//printf("END OF MAIN THREADIDSHEAD TID = %u\n", (unsigned int) threadIdsHead->tid);
 	
-	
-	//sleep(1);
-	while((*runningThreadCount) > 0) {
-		printf("runningThreadCount = %d\n", *runningThreadCount);
+	while((*runningThreadCount) > 0){
+		//printf("runningThreadCount = %d\n", *runningThreadCount);
 		sleep(1);
 	}
-	
 	//printf("threadIdsHead->tid = %u\n", (unsigned int) threadIdsHead->tid);
+	
 	/*do{
+		printf("%u,", (unsigned int) threadIdsHead->tid);
 		pthread_join(threadIdsHead->tid, NULL);
 		threadIdsHead = threadIdsHead->next;
 	}while(threadIdsHead != NULL);
+	
 	*/
+	//((traverseDirectoryArgs*)args)->outPath);
 	
-	printf("\n\tTotal number of threads: %d\n", *(totalThreads));
 	
-	movie* currPtr = (movie*)malloc(sizeof(movie));
-	currPtr = globalHead;
 	
-	char* path;
-	
-	if(existsNewOutDir == 1){
-		//sortFile(currentObject->d_name, argv, sortingBy, outPath, colLoc);
-		path = strdup(outPath);
+	if(outPath == NULL){
+		outPath = execPath;
 	}
-	else{
-		//sortFile(currentObject->d_name, argv, sortingBy, ".", colLoc);
-		//path = getcwd(((sortFileArgs*)sortArgs)->path, 1024);
-		path = ".";
-	}
+	//printf("\noutput directory = %s\n", outPath);
+	char* finalFilePath = (char*)malloc(sizeof(char) * (22 + strlen(outPath) + strlen(argv[colLoc])));
 	
+	memcpy(finalFilePath, outPath, strlen(outPath));
+	strcat(finalFilePath, "/AllFiles-sorted-");
+	strcat(finalFilePath, argv[colLoc]);
+	strcat(finalFilePath, ".csv");
 	
-	//Create new file name to output to.
-	//char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen(fileName) + 30)));
-	char* newFileName = (char*)malloc(sizeof(char)*((strlen(path) + strlen("AllFiles") + 30)));
-	//Determine where endOfFileName is, subtract 4 (accounts for ".csv"). Then, concatenate "-sorted-<category>.csv".
-	//int endOfFileName = strlen(fileName) - 4;
-	int endOfFileName = strlen("AllFiles") - 4;
+	//printf("\nend file name = %s\n", finalFilePath);
 	
-	//char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen(fileName) + 1)));
-	char* truncatedFileName = (char*)malloc((sizeof(char)*(strlen("AllFiles") + 1)));
-	//truncatedFileName = memcpy(truncatedFileName, fileName, endOfFileName);
-	truncatedFileName = memcpy(truncatedFileName, "AllFiles", endOfFileName);
+	FILE* finalFile = fopen(finalFilePath, "w");
 	
-	truncatedFileName[endOfFileName + 1] = '\0';
-
-	
-	//printf("truncated FN = %s\n", truncatedFileName);
-	int endOfOutPath = strlen(path);
-	memcpy(newFileName, path, endOfOutPath);
-	strcat(newFileName, "/");
-	strcat(newFileName, truncatedFileName);
-	strcat(newFileName, "-sorted-");
-	strcat(newFileName, argv[colLoc]);
-	strcat(newFileName, ".csv");
-	
-	outputFile = fopen(newFileName, "w");
-	
-	if(outputFile == NULL) {
-		printf("Fatal Error: could not create output file\n");
-		exit(0);
-	}
-	else {
-		if(currPtr == NULL) {
-			printf("Fatal Error: no valid CSVs in target directory\n");
-			exit(0);
-		}
-		printNodes(currPtr, outputFile);
-	}
-	
+	merge(&globalHead, sortingBy);
+	printNodes(globalHead, finalFile);
 	freePtr(globalHead);
-	//free(globalHead);
 	free(globalRear);
+	fclose(finalFile);
+	printf("\n\tTotal number of threads: %d\n", *totalThreads);
 	return 0;
 }
