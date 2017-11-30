@@ -216,7 +216,7 @@ int sortByCategory(char* sortColumnName){
 }
 
 void * sortFile(void * args){
-	printf("YAY I ENTERED SORTFILE()\n");
+	//printf("YAY I ENTERED SORTFILE()\n");
 	char * fileName = NULL;
 	fileName = strdup(((sortFileArgs *)args)->fileName);
 	char** argv = ((sortFileArgs *)args)->argv;
@@ -226,7 +226,7 @@ void * sortFile(void * args){
 	int colLoc = ((sortFileArgs *)args)->colLoc;
 	int* runningThreadCount = ((sortFileArgs *)args)->runningThreadCount;
 
-	//printf("%u,", (unsigned int) pthread_self());
+	printf("%u,", (unsigned int) pthread_self());
 	
 	//printf("current path = %s\n", path);
 	
@@ -246,6 +246,9 @@ void * sortFile(void * args){
 	
 	if(filePointer == NULL){
 		printf("Fatal Error: The file <%s> does not exist.\n", filePath);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	free(filePath);
@@ -261,6 +264,9 @@ void * sortFile(void * args){
 	if(strcmp(line, categories) !=  0){
 		printf("Fatal Error: The input file \"%s\" does not adhere to specified format\n", fileName);
 		fclose(filePointer);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	//Create new file name to output to.
@@ -302,6 +308,9 @@ void * sortFile(void * args){
 	//If outputFile already exists, don't even bother with rest of method.
 	if(outputFile != NULL){
 		//printf("Fatal Error: File \"%s\" already exists.\n", newFileName);
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	else{
@@ -311,6 +320,9 @@ void * sortFile(void * args){
 	
 	if(line == NULL){
 		printf("Fatal Error: The input file is blank.\n");
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 
@@ -470,7 +482,7 @@ void * sortFile(void * args){
 	(*runningThreadCount)--;
 	pthread_mutex_unlock(&running_thread_count);
 	
-	printf("YAY IM EXITING FROM SORTFILE\n");
+	//printf("YAY IM EXITING FROM SORTFILE\n");
 	
 	pthread_exit(0);
 	return NULL;
@@ -491,7 +503,7 @@ void * traverseDirectory(void * args){
 	int* runningThreadCount = ((traverseDirectoryArgs*)args)->runningThreadCount;
 	int colLoc = ((traverseDirectoryArgs*)args)->colLoc;
 	
-	//printf("%u,", (unsigned int) pthread_self());
+	printf("%u,", (unsigned int) pthread_self());
 	
 	pthread_mutex_lock(&thread_ID_list);
 	if(threadIdsHead == NULL){
@@ -527,6 +539,9 @@ void * traverseDirectory(void * args){
 	if((directoryPointer = opendir(path)) == NULL){
 		printf("Fatal Error: The directory does not exist.\n");
 		//return;
+		pthread_mutex_lock(&running_thread_count);
+		(*runningThreadCount)--;
+		pthread_mutex_unlock(&running_thread_count);
 		pthread_exit(0);
 	}
 	
@@ -602,6 +617,9 @@ void * traverseDirectory(void * args){
 				if(err != 0) {
 					printf("Fatal error: Thread did not create properly\n");
 					//Should it be exit or return?
+					pthread_mutex_lock(&running_thread_count);
+					(*runningThreadCount)--;
+					pthread_mutex_unlock(&running_thread_count);
 					pthread_exit(0);
 				}
 				
@@ -687,6 +705,9 @@ void * traverseDirectory(void * args){
 				err = pthread_create(&tid, NULL, sortFuncPointer, (void*)sortArgs);
 				if(err != 0) {
 					printf("Fatal Error: Something went wrong with thread creation.\n");
+					pthread_mutex_lock(&running_thread_count);
+					(*runningThreadCount)--;
+					pthread_mutex_unlock(&running_thread_count);
 					pthread_exit(0);
 				}
 				
@@ -736,7 +757,7 @@ void * traverseDirectory(void * args){
 	(*runningThreadCount)--;
 	pthread_mutex_unlock(&running_thread_count);
 	
-	printf("YAY IM EXITING FROM TRAVERSE DIRECT\n");
+	//printf("YAY IM EXITING FROM TRAVERSE DIRECT\n");
 	
 	pthread_exit(0);
 	return NULL;
@@ -980,161 +1001,6 @@ int main(int argc, char ** argv) {
 	int initPID = getpid();
 	printf("Initial PID: %d\n", initPID);
 	printf("\tTIDS of all child threads: ");
-
-	//int forkPid;
-	//printf("\nDid we pass this check?\n");
-	
-	/* Start of previous input flags code
-	
-	//This must ALWAYS be present
-	if (strcmp(argv[1], "-c") != 0){
-		printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-		exit(0);
-	}
-	
-	int sortingBy = -1;
-	sortingBy = sortByCategory(argv[2]);
-	
-	int forkPid;
-	//Default for searchDir should be current directory, default for outputDir should be whatever searchDir is. Think Joe wanted to wait until after input checks to see if he has to do that.
-	DIR* searchDir = NULL;
-	DIR* outputDir = NULL;
-	char* outPath = NULL;
-	
-	//Checking to see if we are going to be searching in a specific directory instead of current
-	if((argc == 5) && (argv[3] != NULL)){
-		if((strcmp(argv[3], "-d") != 0) && (strcmp(argv[3], "-o") != 0)){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else if(strcmp(argv[3], "-o") == 0) {
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> -o <outputdir>\n");
-				exit(0);
-			}
-			else{
-				outputDir = opendir(argv[4]);
-				if(outputDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				existsNewOutDir = 1;
-				if(strcmp(argv[4], "./") == 0){
-					
-					outPath = getcwd(outPath, 1024);
-				}
-				else if(strstr(argv[4], "../")){
-					outPath = getcwd(outPath, 1024);
-					outPath = strcat(outPath, "/");
-					outPath = strcat(outPath, argv[4]);
-					//printf("outPath = %s\n", outPath);
-				}
-				else{
-					outPath = strdup(argv[4]);
-				}
-				//printf("outPath in main = %s\n", outPath);
-			}
-		}
-		//The 4 output will be -d
-		else{
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				searchDir = opendir(argv[4]);
-				if(searchDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				fflush(0);
-				forkPid = fork();
-				if(forkPid != 0) {
-					totalProcesses++;
-					//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0) {
-					totalProcesses = 0;
-					//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0){
-					
-					traverseDirectory(argv[4], argv, sortingBy, totalProcesses, 0, existsNewOutDir, ".");
-				}
-			}
-		}
-	}
-	//Checking to see if we are going to be searching and outputting to a specific directory instead of current
-	if((argc == 7) && (argv[5] != NULL)){
-		if(strcmp(argv[5], "-o") != 0){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else if(strcmp(argv[3], "-d") != 0){
-			printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-			exit(0);
-		}
-		else{
-			if(argv[6] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				outputDir = opendir(argv[6]);
-				if(outputDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				existsNewOutDir = 1;
-				
-				if(strcmp(argv[6], "./") == 0){
-					
-					outPath = getcwd(outPath, 1024);
-				}
-				else if(strstr(argv[6], "../")){
-					outPath = getcwd(outPath, 1024);
-					outPath = strcat(outPath, "/");
-					outPath = strcat(outPath, argv[6]);
-					//printf("outPath = %s\n", outPath);
-				}
-				else{
-					outPath = strdup(argv[6]);
-				}
-				
-				//printf("outPath in main = %s\n", outPath);
-			}
-		
-		//The 4 output will be -d
-		
-			if(argv[4] == NULL){
-				printf("Fatal Error: The format of the input is incorrect. Please use the format: ./sorter.c -c <column heading> <-d thisdir> <-o thatdir>\n");
-				exit(0);
-			}
-			else{
-				searchDir = opendir(argv[4]);
-				if(searchDir == NULL){
-					printf("The file directory does not exist\n");
-					exit(0);
-				}
-				fflush(0);
-				forkPid = fork();
-				if(forkPid != 0) {
-					totalProcesses++;
-					//printf("\nmain: I JUST FORKED-parent, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0) {
-					totalProcesses = 0;
-					//printf("\nmain: I JUST FORKED-child, my pid is : %d, totalProcesses is now: %d\n", getpid(), totalProcesses);
-				}
-				if(forkPid == 0){
-					
-					traverseDirectory(argv[4], argv, sortingBy, totalProcesses, 0, existsNewOutDir, outPath);
-				}
-			}
-		}
-	}
-	End of previous input flags code*/
-	
 	
 	//The input format will be incorrect if argc is 1, or an even number
 	if((argc == 1) || ((argc % 2) == 0)){
@@ -1248,6 +1114,9 @@ int main(int argc, char ** argv) {
 						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
 						if(err != 0) {
 							printf("Fatal error: Thread did not create properly\n");
+							pthread_mutex_lock(&running_thread_count);
+							(*runningThreadCount)--;
+							pthread_mutex_unlock(&running_thread_count);
 							pthread_exit(0);
 						}
 						pthread_mutex_lock(&thread_ID_list);
@@ -1623,24 +1492,7 @@ int main(int argc, char ** argv) {
 		
 		//pthread_join(tid, NULL);
 	}
-	/*
-	if(forkPid != 0){
-		wait(NULL);
-	}
-	*/
-	/*i = 0;
-	int total = totalProcesses;
-	for(i = 0; i < total; i++) {
-		wait(&status);
-		if(WIFEXITED(status)) {
-			totalProcesses += WEXITSTATUS(status);
-			//printf("\npid: %d, Exit status: %d\n", getpid(), WEXITSTATUS(status));
-			//printf("\nI am process: %d. I should be updating totalProcesses, it is now: %d.\n", getpid(),  totalProcesses);
-		}*/
-	//wait(NULL);
-	/*if(cwd != NULL){
-		free(cwd);
-	}*/
+	
 	fflush(0);
 	
 	
@@ -1653,7 +1505,7 @@ int main(int argc, char ** argv) {
 	//printf("END OF MAIN THREADIDSHEAD TID = %u\n", (unsigned int) threadIdsHead->tid);
 	
 	while((*runningThreadCount) > 0){
-		printf("runningThreadCount = %d\n", *runningThreadCount);
+		//printf("runningThreadCount = %d\n", *runningThreadCount);
 		sleep(1);
 	}
 	//printf("threadIdsHead->tid = %u\n", (unsigned int) threadIdsHead->tid);

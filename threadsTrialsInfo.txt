@@ -9,184 +9,171 @@ Single Directory:
 	1 File:
 
 		real	0m1.007s
-		user	0m0.006s
-		sys	0m0.006s
+		user	0m0.009s
+		sys	0m0.004s
 
 		real	0m1.008s
-		user	0m0.008s
+		user	0m0.009s
 		sys	0m0.007s
 
-		real	0m1.012s
-		user	0m0.011s
-		sys	0m0.008s
+		real	0m1.007s
+		user	0m0.008s
+		sys	0m0.009s
+	
+	2 Files: 
 
-	2 Files:
-
-		real	0m1.012s
-		user	0m0.013s
-		sys	0m0.012s
-
-		real	0m1.015s
-		user	0m0.018s
+		real	0m1.009s
+		user	0m0.017s
 		sys	0m0.009s
 
-		real	0m1.010s
-		user	0m0.013s
-		sys	0m0.008s
+		real	0m1.020s
+		user	0m0.032s
+		sys	0m0.023s
+
+		real	0m1.022s
+		user	0m0.038s
+		sys	0m0.021s
 
 	4 Files:
 
-		real	0m1.015s
+		real	0m1.009s
 		user	0m0.024s
-		sys	0m0.013s
+		sys	0m0.012s
 
-		real	0m1.022s
-		user	0m0.032s
-		sys	0m0.025s
+		real	0m1.019s
+		user	0m0.061s
+		sys	0m0.026s
 
-		real	0m1.015s
-		user	0m0.031s
-		sys	0m0.017s
-
+		real	0m1.013s
+		user	0m0.052s
+		sys	0m0.018s
+		
 	8 Files:
 
-		real	0m1.027s
-		user	0m0.048s
-		sys	0m0.030s
+		real	0m1.016s
+		user	0m0.054s
+		sys	0m0.018s
 
-		real	0m1.026s
-		user	0m0.050s
-		sys	0m0.027s
-
-		real	0m1.023s
-		user	0m0.050s
-		sys	0m0.016s
-
-	16 Files:
-
-		real	0m1.042s
-		user	0m0.135s
+		real	0m1.021s
+		user	0m0.068s
 		sys	0m0.043s
 
-		real	0m1.031s
-		user	0m0.090s
-		sys	0m0.027s
+		real	0m1.017s
+		user	0m0.050s
+		sys	0m0.017s
+		
+	16 Files:
 
-		real	0m1.027s
-		user	0m0.097s
-		sys	0m0.036s
+		real	0m1.039s
+		user	0m0.151s
+		sys	0m0.059s
 
+		real	0m1.037s
+		user	0m0.093s
+		sys	0m0.060s
+
+		real	0m1.039s
+		user	0m0.103s
+		sys	0m0.048s
+		
 	32 Files:
 
-		real	0m1.027s
-		user	0m0.166s
-		sys	0m0.034s
+		real	0m1.030s
+		user	0m0.249s
+		sys	0m0.078s
 
-		real	0m1.026s
-		user	0m0.145s
-		sys	0m0.032s
+		real	0m1.021s
+		user	0m0.237s
+		sys	0m0.090s
 
-		real	0m1.027s
-		user	0m0.136s
-		sys	0m0.046s
-
+		real	0m1.033s
+		user	0m0.242s
+		sys	0m0.078s
+		
 	64 Files:
 
-		real	0m1.049s
-		user	0m0.309s
-		sys	0m0.066s
+		real	0m1.067s
+		user	0m0.465s
+		sys	0m0.220s
 
-		real	0m1.054s
-		user	0m0.319s
-		sys	0m0.071s
+		real	0m1.071s
+		user	0m0.460s
+		sys	0m0.136s
 
-		real	0m1.058s
-		user	0m0.343s
-		sys	0m0.087s
-
+		real	0m1.052s
+		user	0m0.447s
+		sys	0m0.124s
+		
 	128 Files:
 
-		real	0m1.128s
-		user	0m0.704s
-		sys	0m0.142s
+		real	0m1.032s
+		user	0m0.906s
+		sys	0m0.266s
 
-		real	0m1.106s
-		user	0m0.742s
-		sys	0m0.160s
+		real	0m1.071s
+		user	0m0.764s
+		sys	0m0.170s
 
-		real	0m1.102s
-		user	0m0.661s
-		sys	0m0.156s
-
+		real	0m1.059s
+		user	0m0.833s
+		sys	0m0.217s
+		
 	256 Files:
 
-		real	0m1.084s
-		user	0m0.598s
-		sys	0m0.186s
+		real	0m2.074s
+		user	0m1.603s
+		sys	0m0.428s
 
-		real	0m1.083s
-		user	0m0.571s
-		sys	0m0.187s
+		real	0m2.041s
+		user	0m1.686s
+		sys	0m0.457s
 
-		real	0m1.111s
-		user	0m0.760s
-		sys	0m0.201s
+		real	0m2.042s
+		user	0m1.560s
+		sys	0m0.376s
+	
+	500 Files:
+	
+		real	0m5.221s
+		user	0m3.498s
+		sys	0m2.803s
 
-	512 Files:
+		real	0m8.154s
+		user	0m4.570s
+		sys	0m6.998s
 
-		real	0m1.125s
-		user	0m0.692s
-		sys	0m0.294s
+		real	0m5.572s
+		user	0m2.775s
+		sys	0m0.634s
 
-		real	0m1.114s
-		user	0m0.760s
-		sys	0m0.316s
-
-		real	0m1.105s
-		user	0m0.694s
-		sys	0m0.282s
-
-	1024 Files:
-
-		real	0m1.383s
-		user	0m0.527s
-		sys	0m0.518s
-
-		real	0m1.083s
-		user	0m0.529s
-		sys	0m0.461s
-
-		real	0m1.874s
-		user	0m0.871s
-		sys	0m0.520s
-		
 Executed by using the linux command:
 (time ./sorter -c color -d /ilab/users/jjr263/FALL17/CS214/project2analysis) 2>> processTrialsInfo.txt
 
 1 Main directory and 3 sub-directories, 1 csv file of 301 lines again and the other 4 files mentioned above in each:
+
+		real	0m1.028s
+		user	0m0.018s
+		sys	0m0.014s
+
+		real	0m1.022s
+		user	0m0.077s
+		sys	0m0.029s
+
+		real	0m1.019s
+		user	0m0.030s
+		sys	0m0.012s
 		
-	real	0m1.021s
-	user	0m0.032s
-	sys	0m0.021s
-
-	real	0m1.035s
-	user	0m0.053s
-	sys	0m0.030s
-
-	real	0m1.014s
-	user	0m0.025s
-	sys	0m0.010s
-	
 1 Main directory and 3 sub-directories, 16 csv file of 301 lines again and the other 4 files mentioned above in each:
 
-	real	0m1.036s
-	user	0m0.116s
-	sys	0m0.058s
+	real	0m1.020s
+	user	0m0.314s
+	sys	0m0.115s
 
-	real	0m1.030s
-	user	0m0.044s
-	sys	0m0.067s
+	real	0m1.079s
+	user	0m0.327s
+	sys	0m0.141s
 
-	real	0m1.027s
-	user	0m0.053s
-	sys	0m0.060s
+	real	0m5.246s
+	user	0m0.662s
+	sys	0m1.452s
+
